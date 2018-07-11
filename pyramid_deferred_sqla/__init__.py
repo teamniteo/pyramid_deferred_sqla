@@ -133,7 +133,7 @@ class model_config(object):
                     self.base,
                     **self.meta,
                 )
-        self.venusian.attach(wrapped, callback)
+        venusian.attach(wrapped, callback)
         return wrapped
 
 def _create_session(request):
