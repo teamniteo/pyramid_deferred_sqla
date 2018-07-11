@@ -10,9 +10,9 @@ Opinionated SQLAlchemy + Pyramid integration with deferred configuration in mind
 To start with, configure db module and configure SQLAlchemy engine and Alembic:
 
 ```python
-    config.include("pyramid_deferred_sqla")
-    config.sqlalchemy_engine()
-    config.alembic_config("mypackage:migrations")
+config.include("pyramid_deferred_sqla")
+config.sqlalchemy_engine()
+config.alembic_config("mypackage:migrations")
 ```
 
 Both are going to use `database.url` from the registry settings to
