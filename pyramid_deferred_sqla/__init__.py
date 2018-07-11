@@ -7,12 +7,12 @@ import zope.sqlalchemy
 from pyramid.config import Configurator
 from sqlalchemy import event, inspect
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base, instrument_declarative
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 
-__all__ = ["includeme", "metadata", "Base", "model_config", "listens_for"]
+__all__ = ["includeme", "Model", "Base", "model_config", "listens_for"]
 
 
 class Model(object):

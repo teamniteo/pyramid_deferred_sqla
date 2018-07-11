@@ -38,7 +38,7 @@ def myview(request):
 
 e) Session is attached to `pyramid_tm` transaction manager and uses `pyramid_retry`
 
-f) Exposes `Base` that ties abstract class with default `id` column as uuid and sane repr() implementation
+f) Exposes `Model` that ties abstract class with default `id` column as uuid and sane repr() implementation
 
 g) Defers automagic Base metaclass logic to take place within pyramid Configurator
 
@@ -46,7 +46,7 @@ g) Defers automagic Base metaclass logic to take place within pyramid Configurat
 from pyramid_deferred_sqla import Base, model_config, Model
 
 @model_config(Base)
-class User(object):
+class User(Model):
     ...
 ```
 
