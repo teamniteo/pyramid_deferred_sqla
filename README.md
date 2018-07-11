@@ -47,6 +47,8 @@ from pyramid_deferred_sqla import Base, model_config, Model
 
 @model_config(Base)
 class User(Model):
+    __tablename__ = 'user'
+
     ...
 ```
 
