@@ -4,7 +4,7 @@ import alembic.config
 import sqlalchemy
 import venusian
 import zope.sqlalchemy
-
+from pyramid.config import Configurator
 from sqlalchemy import event, inspect
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
@@ -83,7 +83,7 @@ def listens_for(target, identifier, *args, **kwargs):
 
     return deco
 
-def attach_model_to_base(ModelClass: type, Base: type, ignore_reattach: bool=True):
+def attach_model_to_base(config: Configurator, ModelClass: type, Base: type, ignore_reattach: bool=True):
     """Dynamically add a model to chosen SQLAlchemy Base class.
 
     More flexibility is gained by not inheriting from SQLAlchemy declarative base
@@ -101,14 +101,24 @@ def attach_model_to_base(ModelClass: type, Base: type, ignore_reattach: bool=Tru
            Complain only if we try to attach a different base.
     """
 
-    if ignore_reattach:
-        if '_decl_class_registry' in ModelClass.__dict__:
-            assert ModelClass._decl_class_registry == Base._decl_class_registry, "Tried to attach to a different Base"
-            return
+    def register():
+        if ignore_reattach:
+            if '_decl_class_registry' in ModelClass.__dict__:
+                assert ModelClass._decl_class_registry == Base._decl_class_registry, "Tried to attach to a different Base"
+                return
 
-    instrument_declarative(ModelClass, Base._decl_class_registry, Base.metadata)
+        instrument_declarative(ModelClass, Base._decl_class_registry, Base.metadata)
+        # TODO: Fire some events or does SQLA do it?
 
-    # TODO: Fire some events or does SQLA do it?
+    discriminator = ('sqlalchemy-model', Base, ModelClass)
+    intr = config.introspectable(
+        'sqlalchemy models',
+        discriminator,
+        ModelClass.__name__,
+        'sqlalchemy model',
+    )
+    config.action(discriminator, callable=register, introspectables=(intr,))
+
 
 class model_config(object):
     """ Use as a decorator to attach model to a SQLA base.
@@ -125,10 +135,10 @@ class model_config(object):
     def __call__(self, wrapped):
         def callback(context, name, ob):
             config = context.config
-            attach_model_to_base = getattr(config, 'attach_model_to_base', None)
+            add_model = getattr(config, 'add_model', None)
             # might not have been included
-            if attach_model_to_base is not None:
-                attach_model_to_base(
+            if add_model is not None:
+                add_model(
                     wrapped,
                     self.base,
                     **self.meta,
@@ -200,6 +210,8 @@ def includeme(config):
 
     # Create our SQLAlchemy Engine.
     config.add_directive("sqlalchemy_engine", _create_engine)
+
+    config.add_directive("add_model", attach_model_to_base)
 
     # Register our request.db property
     config.add_request_method(_create_session, name="db", reify=True)
