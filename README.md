@@ -36,9 +36,9 @@ def myview(request):
     ...
 ```
 
-e) Session is attached to `pyramid_tm` transaction manager and uses `pyramid_retry`
+e) SQLA Session is attached to `pyramid_tm` transaction manager and uses `pyramid_retry`.
 
-f) Exposes `Model` that ties abstract class with default `id` column as uuid and sane repr() implementation
+f) Exposes `Model` that ties abstract class with `id` column as uuid primary key and sane __repr__ implementation
 
 g) Defers automagic Base metaclass logic to take place within pyramid Configurator
 
@@ -52,7 +52,7 @@ class User(Model):
     ...
 ```
 
-which is picked up by calling `config.scan('.model')`.
+which is registered by calling `config.scan('.model')`.
 
 ## Running tests
 
