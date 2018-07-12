@@ -14,23 +14,6 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 
 __all__ = ["includeme", "Model", "Base", "model_config", "listens_for"]
 
-
-class Model(object):
-    __abstract__ = True
-
-    def __repr__(self):
-        inst = inspect(self)
-        self.__repr__ = make_repr(
-            *[c_attr.key for c_attr in inst.mapper.column_attrs], _self=self
-        )
-        return self.__repr__()
-
-    id = sqlalchemy.Column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        server_default=sqlalchemy.text("gen_random_uuid()"),
-    )
-
 # Recommended naming convention used by Alembic, as various different database
 # providers will autogenerate vastly different names making migrations more
 # difficult. See: http://alembic.zzzcomputing.com/en/latest/naming.html
@@ -43,7 +26,7 @@ NAMING_CONVENTION = {
 }
 
 metadata = sqlalchemy.MetaData(naming_convention=NAMING_CONVENTION)
-Base = declarative_base(cls=Model, metadata=metadata)
+Base = declarative_base(metadata=metadata)
 
 
 def make_repr(*attrs, _self=None):
@@ -117,6 +100,8 @@ def attach_model_to_base(config: Configurator, ModelClass: type, Base: type, ign
         ModelClass.__name__,
         'sqlalchemy model',
     )
+    intr['Base'] = Base
+    intr['Class'] = ModelClass
     config.action(discriminator, callable=register, introspectables=(intr,))
 
 
@@ -128,7 +113,7 @@ class model_config(object):
         ...
     """
 
-    def __init__(self, base,  **meta):
+    def __init__(self, base, **meta):
         self.base = base
         self.meta = meta
 
@@ -139,12 +124,29 @@ class model_config(object):
             # might not have been included
             if add_model is not None:
                 add_model(
-                    wrapped,
+                    ob,
                     self.base,
                     **self.meta
                 )
         venusian.attach(wrapped, callback)
         return wrapped
+
+@model_config(Base)
+class Model(object):
+    __abstract__ = True
+
+    def __repr__(self):
+        inst = inspect(self)
+        self.__repr__ = make_repr(
+            *[c_attr.key for c_attr in inst.mapper.column_attrs], _self=self
+        )
+        return self.__repr__()
+
+    id = sqlalchemy.Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=sqlalchemy.text("gen_random_uuid()"),
+    )
 
 def _create_session(request):
     """On every request, we create a new session and attach it to
@@ -193,11 +195,13 @@ def _configure_alembic(config, package, db_url_key="database.url"):
     return alembic_cfg
 
 
-def _create_engine(config, db_url_key="database.url", **kw):
-    return sqlalchemy.create_engine(
+def _create_engine(config, db_url_key="sqlalchemy.url", **kw):
+    engine = sqlalchemy.create_engine(
         config.registry.settings[db_url_key],
         **kw
     )
+    Base.metadata.bind = engine
+    return engine
 
 
 def includeme(config):
@@ -218,3 +222,5 @@ def includeme(config):
 
     # Add a route predicate to mark a route as read only.
     config.add_view_deriver(readonly_view_deriver)
+
+    config.scan('.')
