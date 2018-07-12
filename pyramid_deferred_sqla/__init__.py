@@ -141,7 +141,7 @@ class model_config(object):
                 add_model(
                     wrapped,
                     self.base,
-                    **self.meta,
+                    **self.meta
                 )
         venusian.attach(wrapped, callback)
         return wrapped
