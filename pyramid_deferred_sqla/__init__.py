@@ -154,7 +154,7 @@ def _create_session(request):
     """
 
     # Create a session from our connection
-    session = Session(bind=request.registry["sqlalchemy.engine"])
+    session = Session(bind=request.registry.settings["sqlalchemy.engine"])
 
     # Now that we have a connection, we're going to go and set it to the
     # correct isolation level.
@@ -187,7 +187,7 @@ def readonly_view_deriver(view, info):
 readonly_view_deriver.options = ('read_only',)
 
 
-def _configure_alembic(config, package, db_url_key="database.url"):
+def _configure_alembic(config, package, db_url_key="sqlalchemy.url"):
     alembic_cfg = alembic.config.Config()
     # TODO: load from cfg
     alembic_cfg.set_main_option("script_location", package)
@@ -201,7 +201,7 @@ def _create_engine(config, db_url_key="sqlalchemy.url", **kw):
         **kw
     )
     Base.metadata.bind = engine
-    return engine
+    config.registry.settings['sqlalchemy.engine'] = engine
 
 
 def includeme(config):
