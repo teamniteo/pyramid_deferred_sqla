@@ -8,6 +8,7 @@ from pyramid.config import Configurator
 from sqlalchemy import event, inspect
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base, instrument_declarative
+from sqlalchemy.ext.declarative.base import _declarative_constructor
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import DetachedInstanceError
 
@@ -134,6 +135,8 @@ class model_config(object):
 @model_config(Base)
 class Model(object):
     __abstract__ = True
+
+    __init__ = _declarative_constructor
 
     def __repr__(self):
         inst = inspect(self)
