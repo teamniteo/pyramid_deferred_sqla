@@ -161,7 +161,7 @@ def _create_session(request):
 
     # Now that we have a connection, we're going to go and set it to the
     # correct isolation level.
-    if request.read_only:
+    if getattr(request, 'read_only', None):
         session.connection(execution_options={'isolation_level': 'SERIALIZABLE READ ONLY DEFERRABLE'})
 
     # Register only this particular session with zope.sqlalchemy
