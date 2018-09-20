@@ -5,6 +5,7 @@ import sqlalchemy
 import venusian
 import zope.sqlalchemy
 from pyramid.config import Configurator
+from pyramid.viewderivers import INGRESS
 from sqlalchemy import event, inspect
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base, instrument_declarative
@@ -155,14 +156,13 @@ def _create_session(request):
     """On every request, we create a new session and attach it to
        the transaction (manager).
     """
+    connection = request.registry.settings["sqlalchemy.engine"].connect()
+
+    if getattr(request, 'read_only', False) and connection.in_transaction() is False:
+        connection.connection.set_session(readonly=True)
 
     # Create a session from our connection
-    session = Session(bind=request.registry.settings["sqlalchemy.engine"])
-
-    # Now that we have a connection, we're going to go and set it to the
-    # correct isolation level.
-    if getattr(request, 'read_only', None):
-        session.connection(execution_options={'isolation_level': 'SERIALIZABLE READ ONLY DEFERRABLE'})
+    session = Session(bind=connection)
 
     # Register only this particular session with zope.sqlalchemy
     zope.sqlalchemy.register(session, transaction_manager=request.tm)
@@ -179,12 +179,13 @@ def _create_session(request):
 
 def readonly_view_deriver(view, info):
     def wrapper_view(context, request):
-        if 'read_only' in info.options:
-            request.read_only = info.options['read_only']
-        else:
-            request.read_only = request.method.lower in ("get", "options", "head")
-        response = view(context, request)
-        return response
+        def _read_only(request):
+            if 'read_only' in info.options:
+                return info.options['read_only']
+            else:
+                return request.method.lower() in ("get", "options", "head")
+        request.set_property(_read_only, 'read_only', reify=True)
+        return view(context, request)
     return wrapper_view
 
 readonly_view_deriver.options = ('read_only',)
@@ -224,6 +225,6 @@ def includeme(config):
     config.add_request_method(_create_session, name="db", reify=True)
 
     # Add a route predicate to mark a route as read only.
-    config.add_view_deriver(readonly_view_deriver)
+    config.add_view_deriver(readonly_view_deriver, under=INGRESS)
 
     config.scan('.')
