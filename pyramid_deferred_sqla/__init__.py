@@ -4,16 +4,24 @@ import alembic.config
 import sqlalchemy
 import venusian
 import zope.sqlalchemy
-from pyramid.config import Configurator
+
+from pyramid.interfaces import PHASE2_CONFIG
+try:
+    from pyramid.config.util import action_method
+except ImportError:
+    from pyramid.config.actions import action_method
+
 from sqlalchemy import event, inspect
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base, instrument_declarative
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.declarative.base import _declarative_constructor
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import DetachedInstanceError
 
+import deferred_sqla
 
-__all__ = ["includeme", "Model", "Base", "model_config", "listens_for"]
+
+__all__ = ["includeme", "Model", "Base", "listens_for"]
 
 # Recommended naming convention used by Alembic, as various different database
 # providers will autogenerate vastly different names making migrations more
@@ -67,72 +75,53 @@ def listens_for(target, identifier, *args, **kwargs):
 
     return deco
 
-def attach_model_to_base(config: Configurator, ModelClass: type, Base: type, ignore_reattach: bool=True):
-    """Dynamically add a model to chosen SQLAlchemy Base class.
-
-    More flexibility is gained by not inheriting from SQLAlchemy declarative base
-    and instead plugging in models during the pyramid configuration time.
-
-    Directly inheriting from SQLAlchemy Base class has non-undoable side effects.
-    All models automatically pollute SQLAlchemy namespace and may e.g. cause
-    problems with conflicting table names. This also allows @declared_attr to access Pyramid registry.
-
-    :param ModelClass: SQLAlchemy model class
-    :param Base: SQLAlchemy declarative Base for which model should belong to
-    :param ignore_reattach: Do nothing if ``ModelClass`` is already attached to base.
-           Base registry is effectively global. ``attach_model_to_base()`` may be
-           called several times within the same process during unit tests runs.
-           Complain only if we try to attach a different base.
-    """
-
+@action_method
+def register_sqla_models(config, *models):
     def register():
-        if ignore_reattach:
-            if '_decl_class_registry' in ModelClass.__dict__:
-                assert ModelClass._decl_class_registry == Base._decl_class_registry, "Tried to attach to a different Base"
-                return
+        deferred_sqla.register_sqla_models(config, *models)
+    config.action(None, callable=register)
+    
 
-        instrument_declarative(ModelClass, Base._decl_class_registry, Base.metadata)
-        # TODO: Fire some events or does SQLA do it?
+@action_method
+def attach_sqla_models_to_base(config, base):
+    """Dynamically add models registered using ``register_sqla_models`` to
+    chosen SQLAlchemy Base class.
 
-    discriminator = ('sqlalchemy-model', Base, ModelClass)
-    intr = config.introspectable(
-        'sqlalchemy models',
-        discriminator,
-        ModelClass.__name__,
-        'sqlalchemy model',
-    )
-    intr['Base'] = Base
-    intr['Class'] = ModelClass
-    config.action(discriminator, callable=register, introspectables=(intr,))
+    More flexibility is gained by not inheriting from SQLAlchemy declarative
+    base and instead plugging in models during the pyramid configuration time.
 
+    Directly inheriting from SQLAlchemy Base class has non-undoable side
+    effects.  All models automatically pollute SQLAlchemy namespace and may
+    e.g. cause problems with conflicting table names. This also allows
+    @declared_attr to access Pyramid registry.
 
-class model_config(object):
-    """ Use as a decorator to attach model to a SQLA base.
-
-    @model_config(Base)
-    class User(Model):
-        ...
+    :param base: SQLAlchemy declarative Base for which model should belong to
     """
-
-    def __init__(self, base, **meta):
-        self.base = base
-        self.meta = meta
-
-    def __call__(self, wrapped):
-        def callback(context, name, ob):
-            config = context.config
-            add_model = getattr(config, 'add_model', None)
-            # might not have been included
-            if add_model is not None:
-                add_model(
-                    ob,
-                    self.base,
-                    **self.meta
+    def attach():
+        deferred_sqla.attach_sqla_models_to_base(config, base)
+        basereg = base._decl_class_registry
+        for model in config._deferred_sqla_models:
+            modelreg = model.__dict__.get('_decl_class_registry')
+            if modelreg == basereg:
+                discriminator = ('sqlalchemy-model', base, model)
+                intr = config.introspectable(
+                    'sqlalchemy models',
+                    discriminator,
+                    model.__name__,
+                    'sqlalchemy model',
                 )
-        venusian.attach(wrapped, callback)
-        return wrapped
+                intr['base'] = base
+                intr['class'] = model
+                config.action(
+                    discriminator,
+                    callable=None,
+                    introspectables=(intr,),
+                )
+    discriminator = ('attach-sqla-models-to-base', base)
+    # make sure this happens after all models are registered
+    config.action(discriminator, callable=attach, order=PHASE2_CONFIG)
 
-@model_config(Base)
+@deferred_sqla.model_config
 class Model(object):
     __abstract__ = True
 
@@ -218,7 +207,14 @@ def includeme(config):
     # Create our SQLAlchemy Engine.
     config.add_directive("sqlalchemy_engine", _create_engine)
 
-    config.add_directive("add_model", attach_model_to_base)
+    config.add_directive(
+        'register_sqla_models',
+        register_sqla_models
+    )
+    config.add_directive(
+        'attach_sqla_models_to_base',
+        attach_sqla_models_to_base
+    )
 
     # Register our request.db property
     config.add_request_method(_create_session, name="db", reify=True)
