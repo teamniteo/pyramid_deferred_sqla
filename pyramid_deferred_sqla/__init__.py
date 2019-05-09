@@ -173,7 +173,7 @@ def _create_session(request):
     def cleanup(request):
         session.close()
         # ensures previous SET calls are invalidated, before connection is returned to the pool
-        connection.detach()
+        connection.close()
 
     # Return our session now that it's created and registered
     return session
