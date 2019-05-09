@@ -47,7 +47,6 @@ def make_repr(*attrs, _self=None):
     return _repr
 
 
-
 # Create our session class here, this will stay stateless as we'll bind the
 # engine to each new state we create instead of binding it to the session
 # class.
@@ -67,6 +66,7 @@ def listens_for(target, identifier, *args, **kwargs):
         return wrapped
 
     return deco
+
 
 def attach_model_to_base(config: Configurator, ModelClass: type, Base: type, ignore_reattach: bool=True):
     """Dynamically add a model to chosen SQLAlchemy Base class.
@@ -133,6 +133,7 @@ class model_config(object):
         venusian.attach(wrapped, callback)
         return wrapped
 
+
 @model_config(Base)
 class Model(object):
     __abstract__ = True
@@ -151,6 +152,7 @@ class Model(object):
         primary_key=True,
         server_default=sqlalchemy.text("gen_random_uuid()"),
     )
+
 
 def _create_session(request):
     """On every request, we create a new session and attach it to
@@ -172,8 +174,13 @@ def _create_session(request):
     @request.add_finished_callback
     def cleanup(request):
         session.close()
-        # ensures previous SET calls are invalidated, before connection is returned to the pool
-        connection.close()
+
+        # If we set this connection as read only we need to invalidate it as
+        # it cannot be use for subsequent requests.
+        if getattr(request, 'read_only', False):
+            connection.invalidate()
+        else:
+            connection.close()
 
     # Return our session now that it's created and registered
     return session
@@ -189,6 +196,7 @@ def readonly_view_deriver(view, info):
         request.set_property(_read_only, 'read_only', reify=True)
         return view(context, request)
     return wrapper_view
+
 
 readonly_view_deriver.options = ('read_only',)
 
