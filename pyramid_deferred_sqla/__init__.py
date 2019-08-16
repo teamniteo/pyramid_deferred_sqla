@@ -20,11 +20,11 @@ __all__ = ["includeme", "Model", "Base", "model_config", "listens_for"]
 # providers will autogenerate vastly different names making migrations more
 # difficult. See: http://alembic.zzzcomputing.com/en/latest/naming.html
 NAMING_CONVENTION = {
-    "ix": 'ix_%(column_0_label)s',
+    "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
     "ck": "ck_%(table_name)s_%(constraint_name)s",
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-    "pk": "pk_%(table_name)s"
+    "pk": "pk_%(table_name)s",
 }
 
 metadata = sqlalchemy.MetaData(naming_convention=NAMING_CONVENTION)
@@ -56,6 +56,7 @@ Session = sessionmaker()
 def listens_for(target, identifier, *args, **kwargs):
     """Deferred listens_for decorator that calls sqlalchemy.event.listen
     """
+
     def deco(wrapped):
         def callback(scanner, _name, wrapped):
             wrapped = functools.partial(wrapped, scanner.config)
@@ -68,7 +69,9 @@ def listens_for(target, identifier, *args, **kwargs):
     return deco
 
 
-def attach_model_to_base(config: Configurator, ModelClass: type, Base: type, ignore_reattach: bool=True):
+def attach_model_to_base(
+    config: Configurator, ModelClass: type, Base: type, ignore_reattach: bool = True
+):
     """Dynamically add a model to chosen SQLAlchemy Base class.
 
     More flexibility is gained by not inheriting from SQLAlchemy declarative base
@@ -88,22 +91,21 @@ def attach_model_to_base(config: Configurator, ModelClass: type, Base: type, ign
 
     def register():
         if ignore_reattach:
-            if '_decl_class_registry' in ModelClass.__dict__:
-                assert ModelClass._decl_class_registry == Base._decl_class_registry, "Tried to attach to a different Base"
+            if "_decl_class_registry" in ModelClass.__dict__:
+                assert (
+                    ModelClass._decl_class_registry == Base._decl_class_registry
+                ), "Tried to attach to a different Base"
                 return
 
         instrument_declarative(ModelClass, Base._decl_class_registry, Base.metadata)
         # TODO: Fire some events or does SQLA do it?
 
-    discriminator = ('sqlalchemy-model', Base, ModelClass)
+    discriminator = ("sqlalchemy-model", Base, ModelClass)
     intr = config.introspectable(
-        'sqlalchemy models',
-        discriminator,
-        ModelClass.__name__,
-        'sqlalchemy model',
+        "sqlalchemy models", discriminator, ModelClass.__name__, "sqlalchemy model"
     )
-    intr['Base'] = Base
-    intr['Class'] = ModelClass
+    intr["Base"] = Base
+    intr["Class"] = ModelClass
     config.action(discriminator, callable=register, introspectables=(intr,))
 
 
@@ -122,14 +124,11 @@ class model_config(object):
     def __call__(self, wrapped):
         def callback(context, name, ob):
             config = context.config
-            add_model = getattr(config, 'add_model', None)
+            add_model = getattr(config, "add_model", None)
             # might not have been included
             if add_model is not None:
-                add_model(
-                    ob,
-                    self.base,
-                    **self.meta
-                )
+                add_model(ob, self.base, **self.meta)
+
         venusian.attach(wrapped, callback)
         return wrapped
 
@@ -160,7 +159,7 @@ def _create_session(request):
     """
     connection = request.registry.settings["sqlalchemy.engine"].connect()
 
-    if getattr(request, 'read_only', False) and connection.in_transaction() is False:
+    if getattr(request, "read_only", False) and connection.in_transaction() is False:
         connection.connection.set_session(readonly=True)
 
     # Create a session from our connection
@@ -177,7 +176,7 @@ def _create_session(request):
 
         # If we set this connection as read only we need to invalidate it as
         # it cannot be use for subsequent requests.
-        if getattr(request, 'read_only', False):
+        if getattr(request, "read_only", False):
             connection.invalidate()
         else:
             connection.close()
@@ -189,16 +188,18 @@ def _create_session(request):
 def readonly_view_deriver(view, info):
     def wrapper_view(context, request):
         def _read_only(request):
-            if 'read_only' in info.options:
-                return info.options['read_only']
+            if "read_only" in info.options:
+                return info.options["read_only"]
             else:
                 return request.method.lower() in ("get", "options", "head")
-        request.set_property(_read_only, 'read_only', reify=True)
+
+        request.set_property(_read_only, "read_only", reify=True)
         return view(context, request)
+
     return wrapper_view
 
 
-readonly_view_deriver.options = ('read_only',)
+readonly_view_deriver.options = ("read_only",)
 
 
 def _configure_alembic(config, package, db_url_key="sqlalchemy.url"):
@@ -210,18 +211,15 @@ def _configure_alembic(config, package, db_url_key="sqlalchemy.url"):
 
 
 def _create_engine(config, db_url_key="sqlalchemy.url", **kw):
-    engine = sqlalchemy.create_engine(
-        config.registry.settings[db_url_key],
-        **kw
-    )
+    engine = sqlalchemy.create_engine(config.registry.settings[db_url_key], **kw)
     Base.metadata.bind = engine
-    config.registry.settings['sqlalchemy.engine'] = engine
+    config.registry.settings["sqlalchemy.engine"] = engine
 
 
 def includeme(config):
     # Hook request lifecycle to a transaction and retry transient failures
-    config.include('pyramid_tm')
-    config.include('pyramid_retry')
+    config.include("pyramid_tm")
+    config.include("pyramid_retry")
 
     # Add a directive to get an alembic configuration.
     config.add_directive("alembic_config", _configure_alembic)
@@ -237,4 +235,4 @@ def includeme(config):
     # Add a route predicate to mark a route as read only.
     config.add_view_deriver(readonly_view_deriver, under=INGRESS)
 
-    config.scan('.')
+    config.scan(".")
