@@ -54,6 +54,10 @@ class User(Model):
 
 which is registered by calling `config.scan('.model')`.
 
+## Example implementation
+
+A full-blown example app, with tests, based on this package is available at https://github.com/niteoweb/pyramid-realworld-example-app.
+
 ## Running tests
 
     $ tox

@@ -2,8 +2,13 @@ import functools
 
 import alembic.config
 import sqlalchemy
+import sys
 import venusian
 import zope.sqlalchemy
+
+from alembic.command import EnvironmentContext
+from alembic.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from pyramid.config import Configurator
 from pyramid.viewderivers import INGRESS
 from sqlalchemy import event, inspect
@@ -214,6 +219,43 @@ def _create_engine(config, db_url_key="sqlalchemy.url", **kw):
     engine = sqlalchemy.create_engine(config.registry.settings[db_url_key], **kw)
     Base.metadata.bind = engine
     config.registry.settings["sqlalchemy.engine"] = engine
+
+    check_db_migrated(config)
+
+
+def check_db_migrated(config: Configurator) -> None:
+    """Check if DB is migrated to Alembic head.
+
+    Do it by comparing the Alembic revision in DB to the Alembic revision on
+    the filesystem.
+    """
+
+    # skip if SKIP_CHECK_DB_MIGRATED is set
+    if config.registry.settings.get("SKIP_CHECK_DB_MIGRATED"):
+        return
+
+    # skip if we are bootstrapping from alembic env, meaning when running
+    # an alembic command in the terminal
+    if getattr(alembic.context, "config", None):
+        return
+
+    # get latest migration file
+    alembic_config = alembic.config.Config("etc/alembic.ini")
+
+    script = ScriptDirectory.from_config(alembic_config)
+    head = EnvironmentContext(alembic_config, script).get_head_revision()
+
+    # get latest version from db
+    with config.registry.settings["sqlalchemy.engine"].connect() as conn:
+        curr = MigrationContext.configure(conn).get_current_revision()
+
+    if curr != head:
+        sys.exit(
+            "ERROR: The latest Alembic migration applied to the DB is "
+            f"{curr}, but I found a more recent migration on the filesystem: "
+            f"{head}. Please upgrade your DB to Alembic 'head' or skip this "
+            "check by setting SKIP_CHECK_DB_MIGRATED=1."
+        )
 
 
 def includeme(config):
