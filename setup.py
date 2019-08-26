@@ -42,7 +42,7 @@ setup(
     ],
     keywords="pyramid sqlalchemy",
     packages=find_packages(exclude=["contrib", "docs", "tests"]),
-    package_data={"": ["LICENSE"]},
+    include_package_data=True,
     install_requires=[
         "pyramid",
         "pyramid_tm",
