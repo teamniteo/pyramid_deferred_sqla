@@ -42,9 +42,6 @@ setup(
     ],
     keywords="pyramid sqlalchemy",
     packages=find_packages(exclude=["contrib", "docs", "tests"]),
-    package_data={
-        'pyramid_deferred_sqla': ['LICENSE', 'py.typed'],
-    },
     include_package_data=True,
     install_requires=[
         "pyramid",
