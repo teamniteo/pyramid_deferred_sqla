@@ -1,0 +1,30 @@
+version: 2.1
+
+workflows:
+  tox:
+    jobs:
+      - py36
+      - py37
+
+jobs:
+  py36:
+    working_directory: ~/pyramid_deferred_sqla
+    docker:
+      - image: circleci/python:3.6
+    environment:
+      TOXENV: py36
+    steps:
+      - checkout
+      - run: sudo pip install tox
+      - run: tox
+  py37:
+    working_directory: ~/pyramid_deferred_sqla
+    docker:
+      - image: circleci/python:3.7
+    environment:
+      TOXENV: py37
+    steps:
+      - checkout
+      - run: sudo pip install tox
+      - run: tox
+

@@ -1,7 +1,8 @@
 # pyramid_deferred_sqla
 
-[![Build Status](https://travis-ci.com/niteoweb/pyramid_deferred_sqla.svg?branch=master)](https://travis-ci.com/niteoweb/pyramid_deferred_sqla)
-[![PyPi](https://img.shields.io/pypi/v/pyramid_deferred_sqla.svg)](https://pypi.org/project/pyramid_deferred_sqla/)
+[![CircleCI](https://circleci.com/gh/niteoweb/pyramid_deferred_sqla/tree/master.svg?style=svg&circle-token=9eedb407ec3c7ac7aa98cd1a4563d9c3126e33cf)](https://circleci.com/gh/niteoweb/pyramid_deferred_sqla/tree/master)
+
+<!-- Project is not available in PYPI -->
 
 Opinionated SQLAlchemy + Pyramid integration with deferred configuration in mind.
 
