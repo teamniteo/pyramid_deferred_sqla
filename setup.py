@@ -16,7 +16,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 
-version = "0.1.0"
+version = "0.3.0"
 
 setup(
     name="pyramid_deferred_sqla",
@@ -52,6 +52,5 @@ setup(
         "venusian",
         "zope.sqlalchemy",
     ],
-    setup_requires=["pytest-runner"],
     extras_require={"dev": ["coverage", "pytest", "tox"], "lint": ["black"]},
 )
