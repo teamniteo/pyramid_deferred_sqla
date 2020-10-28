@@ -9,10 +9,10 @@ import pytest
 import urllib
 
 
-def test_SKIP_CHECK_DB_MIGRATED() -> None:
+def test_skipping_migrated_check() -> None:
     """Support skipping the check with a config flag."""
     config = Configurator()
-    config.registry.settings["SKIP_CHECK_DB_MIGRATED"] = "true"
+    config.registry.settings["pyramid_deferred_sqla.check_db_migrated"] = False
 
     assert check_db_migrated(config) is None
 
@@ -62,7 +62,7 @@ def test_database_outdated(
     sys.exit.assert_called_with(
         "ERROR: The latest Alembic migration applied to the DB is bar, but I "
         "found a more recent migration on the filesystem: foo. Please upgrade "
-        "your DB to Alembic 'head' or skip this check by setting SKIP_CHECK_DB_MIGRATED=1."
+        "your DB to Alembic 'head' or skip this check by setting pyramid_deferred_sqla.check_db_migrated=0."
     )
 
 

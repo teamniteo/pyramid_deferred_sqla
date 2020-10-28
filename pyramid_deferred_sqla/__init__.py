@@ -230,8 +230,10 @@ def check_db_migrated(config: Configurator) -> None:
     the filesystem.
     """
 
-    # skip if SKIP_CHECK_DB_MIGRATED is set
-    if config.registry.settings.get("SKIP_CHECK_DB_MIGRATED"):
+    # skip if "pyramid_deferred_sqla.check_db_migrated = false" in INI file
+    if not config.registry.settings.get(
+        "pyramid_deferred_sqla.check_db_migrated", True
+    ):
         return
 
     # skip if we are bootstrapping from alembic env, meaning when running
@@ -254,7 +256,7 @@ def check_db_migrated(config: Configurator) -> None:
             "ERROR: The latest Alembic migration applied to the DB is "
             f"{curr}, but I found a more recent migration on the filesystem: "
             f"{head}. Please upgrade your DB to Alembic 'head' or skip this "
-            "check by setting SKIP_CHECK_DB_MIGRATED=1."
+            "check by setting pyramid_deferred_sqla.check_db_migrated=0."
         )
 
 
