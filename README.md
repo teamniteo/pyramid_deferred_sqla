@@ -1,6 +1,6 @@
 # pyramid_deferred_sqla
 
-[![CircleCI](https://circleci.com/gh/niteoweb/pyramid_deferred_sqla/tree/master.svg?style=svg&circle-token=9eedb407ec3c7ac7aa98cd1a4563d9c3126e33cf)](https://circleci.com/gh/niteoweb/pyramid_deferred_sqla/tree/master)
+[![CircleCI](https://circleci.com/gh/teamniteo/pyramid_deferred_sqla/tree/master.svg?style=svg&circle-token=9eedb407ec3c7ac7aa98cd1a4563d9c3126e33cf)](https://circleci.com/gh/teamniteo/pyramid_deferred_sqla/tree/master)
 
 <!-- Project is not available in PYPI -->
 
@@ -57,7 +57,7 @@ which is registered by calling `config.scan('.model')`.
 
 ## Example implementation
 
-A full-blown example app, with tests, based on this package is available at https://github.com/niteoweb/pyramid-realworld-example-app.
+A full-blown example app, with tests, based on this package is available at https://github.com/teamniteo/pyramid-realworld-example-app.
 
 ## Running tests
 
