@@ -43,8 +43,7 @@ def test_database_outdated(
     EnvironmentContext: mock.MagicMock,
     alembic: mock.MagicMock,
 ) -> None:
-    """Database is outdated when head version doesn't match current version.
-    """
+    """Database is outdated when head version doesn't match current version."""
     alembic.context = None
     config = mock.Mock(spec="registry".split())
     config.registry.settings = {"sqlalchemy.engine": mock.Mock(spec="connect".split())}
