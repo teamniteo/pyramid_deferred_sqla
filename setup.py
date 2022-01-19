@@ -47,7 +47,7 @@ setup(
         "pyramid",
         "pyramid_tm",
         "pyramid_retry",
-        "sqlalchemy",
+        "sqlalchemy<1.4.0",
         "alembic",
         "venusian",
         "zope.sqlalchemy",
