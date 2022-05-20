@@ -16,7 +16,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 
-version = "0.3.0"
+version = "0.4.0"
 
 setup(
     name="pyramid_deferred_sqla",
@@ -47,7 +47,7 @@ setup(
         "pyramid",
         "pyramid_tm",
         "pyramid_retry",
-        "sqlalchemy<1.4.0",
+        "sqlalchemy",
         "alembic",
         "venusian",
         "zope.sqlalchemy",

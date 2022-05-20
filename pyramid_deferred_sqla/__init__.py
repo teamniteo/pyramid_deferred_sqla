@@ -14,7 +14,7 @@ from pyramid.viewderivers import INGRESS
 from sqlalchemy import event, inspect
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base, instrument_declarative
-from sqlalchemy.ext.declarative.base import _declarative_constructor
+from sqlalchemy.orm.decl_base import _declarative_constructor
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import DetachedInstanceError
 
