@@ -242,7 +242,9 @@ def check_db_migrated(config: Configurator) -> None:
         return
 
     # get latest migration file
-    alembic_config = alembic.config.Config("etc/alembic.ini")
+    alembic_config = alembic.config.Config(
+        config.registry.settings['ini_path']
+    )
 
     script = ScriptDirectory.from_config(alembic_config)
     head = EnvironmentContext(alembic_config, script).get_head_revision()
